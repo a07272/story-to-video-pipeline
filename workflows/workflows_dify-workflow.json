@@ -1,0 +1,69 @@
+{
+  "name": "novel-to-video-pipeline-sample",
+  "description": "示範性 Dify 工作流：小說段落 -> LLM 分鏡 -> 圖像生成 -> TTS -> FFmpeg 合成短片",
+  "nodes": [
+    {
+      "id": "input_text",
+      "type": "input",
+      "config": {
+        "name": "novel_paragraph",
+        "schema": { "type": "string", "description": "小說段落" }
+      }
+    },
+    {
+      "id": "llm_scene_split",
+      "type": "llm",
+      "config": {
+        "provider": "copilot", 
+        "model": "o4-mini",
+        "prompt_template": "請把以下小說段落拆成 3 個 scene，回傳 JSON: {{novel_paragraph}}"
+      },
+      "inputs": { "text": "input_text.novel_paragraph" }
+    },
+    {
+      "id": "image_prompt_generator",
+      "type": "llm",
+      "config": {
+        "provider": "copilot",
+        "model": "o4-mini",
+        "prompt_template": "根據以下 scene JSON 產生 Stable Diffusion prompt 與 negative prompt：{{llm_scene_split.output}}"
+      },
+      "inputs": { "scene_json": "llm_scene_split.output" }
+    },
+    {
+      "id": "image_generation",
+      "type": "image",
+      "config": {
+        "provider": "stable-diffusion",
+        "model": "sdxl",
+        "api_key_placeholder": "STABLE_DIFFUSION_API_KEY",
+        "size": "1024x1024",
+        "num_images": 3
+      },
+      "inputs": { "prompts": "image_prompt_generator.output" }
+    },
+    {
+      "id": "tts_generation",
+      "type": "audio",
+      "config": {
+        "provider": "elevenlabs",
+        "voice": "alloy",
+        "api_key_placeholder": "ELEVENLABS_API_KEY"
+      },
+      "inputs": { "text": "llm_scene_split.output.dialogue" }
+    },
+    {
+      "id": "video_assemble",
+      "type": "custom",
+      "config": {
+        "runtime": "ffmpeg",
+        "script": "ffmpeg -loop 1 -i image.png -i narration.mp3 -c:v libx264 -t 10 -pix_fmt yuv420p out.mp4"
+      },
+      "inputs": {
+        "images": "image_generation.outputs",
+        "audio": "tts_generation.output"
+      }
+    }
+  ],
+  "notes": "此 JSON 為範例，實際 Dify 格式可能不同。請依 Dify 平台匯入格式調整節點與認證欄位。"
+}

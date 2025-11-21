@@ -1,0 +1,29 @@
+name: Deploy Pages from docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node (build if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Build site (optional)
+        run: |
+          # 如果使用静态站生成器 (Hugo/Eleventy 等) 可在此編譯
+          echo "No build step configured"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
